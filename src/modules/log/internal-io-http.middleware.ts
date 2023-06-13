@@ -35,12 +35,10 @@ export function InternalIOHttpMiddleware(logOptions: InternalLogOptionsDto) {
   const eventEmitter = logOptions.instance;
   const eventName = logOptions.event;
   const httpService = new HttpService();
+  httpService.axiosRef.defaults = logOptions.config as any;
   const httpServiceAxiosRef = httpService.axiosRef;
-  // Adicione o interceptor aqui
   httpServiceAxiosRef.interceptors.request.use(
     (config: AxiosConfigType | any) => {
-      // Lógica personalizada para manipular a solicitação antes de ser enviada
-      console.log("Interceptando a solicitação HTTP");
       const logOutput = new HttpLoggerDto();
       logOutput.action = "input";
       logOutput.systemEvent = "internal";
@@ -51,25 +49,33 @@ export function InternalIOHttpMiddleware(logOptions: InternalLogOptionsDto) {
       };
       eventEmitter.emit(eventName, logOutput);
       return config;
+    },
+    (error) => {
+      return Promise.reject(error);
     }
   );
 
-  httpServiceAxiosRef.interceptors.response.use((response: AxiosResponse) => {
-    // Lógica personalizada para manipular a resposta recebida
-    console.log("Interceptando a resposta HTTP");
-    const logOutput = new HttpLoggerDto();
-    logOutput.action = "output";
-    logOutput.systemEvent = "internal";
-    logOutput.io = {
-      url: response.config.url,
-      data: response.data,
-      method: response.config.method,
-      status: response.status,
-      statusText: response.statusText,
-    };
-    eventEmitter.emit(eventName, logOutput);
-    return response;
-  });
+  httpServiceAxiosRef.interceptors.response.use(
+    (response: AxiosResponse) => {
+      console.log("Interceptando a resposta HTTP");
+      console.log("logOptions, ", logOptions.config);
+      const logOutput = new HttpLoggerDto();
+      logOutput.action = "output";
+      logOutput.systemEvent = "internal";
+      logOutput.io = {
+        url: response.config.url,
+        data: response.data,
+        method: response.config.method,
+        status: response.status,
+        statusText: response.statusText,
+      };
+      eventEmitter.emit(eventName, logOutput);
+      return response;
+    },
+    (error) => {
+      return Promise.reject(error);
+    }
+  );
 
   return httpService;
 }

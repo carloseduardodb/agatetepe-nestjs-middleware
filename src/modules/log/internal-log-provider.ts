@@ -1,5 +1,6 @@
 import { HttpService } from "@nestjs/axios";
 import { InternalIOHttpMiddleware } from "./internal-io-http.middleware";
+import { AxiosRequestConfig } from "axios";
 import {
   InjectionToken,
   OptionalFactoryDependency,
@@ -8,7 +9,8 @@ import {
 export function InternalLogProvider(
   eventName: string,
   service: typeof HttpService,
-  T: InjectionToken | OptionalFactoryDependency
+  T: InjectionToken | OptionalFactoryDependency,
+  config: AxiosRequestConfig
 ) {
   return {
     provide: service,
@@ -16,6 +18,7 @@ export function InternalLogProvider(
       return InternalIOHttpMiddleware({
         instance: issuer,
         event: eventName,
+        config: config,
       });
     },
     inject: [T],
