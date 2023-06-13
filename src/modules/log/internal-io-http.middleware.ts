@@ -35,18 +35,23 @@ export function InternalIOHttpMiddleware(logOptions: InternalLogOptionsDto) {
   const eventEmitter = logOptions.instance;
   const eventName = logOptions.event;
   const httpService = new HttpService();
-  httpService.axiosRef.defaults = logOptions.config as any;
+  httpService.axiosRef.defaults.baseURL = logOptions.config.baseURL;
+  httpService.axiosRef.defaults.headers = {
+    ...httpService.axiosRef.defaults.headers,
+    ...logOptions.config.headers,
+  };
+  httpService.axiosRef.defaults.maxBodyLength = logOptions.config.maxBodyLength;
+  httpService.axiosRef.defaults.maxContentLength =
+    logOptions.config.maxContentLength;
+  httpService.axiosRef.defaults.responseType = logOptions.config.responseType;
+
   const httpServiceAxiosRef = httpService.axiosRef;
   httpServiceAxiosRef.interceptors.request.use(
     (config: AxiosConfigType | any) => {
       const logOutput = new HttpLoggerDto();
       logOutput.action = "input";
       logOutput.systemEvent = "internal";
-      logOutput.io = {
-        url: config.url,
-        data: config?.data,
-        method: config?.method,
-      };
+      logOutput.io = config;
       eventEmitter.emit(eventName, logOutput);
       return config;
     },
@@ -57,18 +62,10 @@ export function InternalIOHttpMiddleware(logOptions: InternalLogOptionsDto) {
 
   httpServiceAxiosRef.interceptors.response.use(
     (response: AxiosResponse) => {
-      console.log("Interceptando a resposta HTTP");
-      console.log("logOptions, ", logOptions.config);
       const logOutput = new HttpLoggerDto();
       logOutput.action = "output";
       logOutput.systemEvent = "internal";
-      logOutput.io = {
-        url: response.config.url,
-        data: response.data,
-        method: response.config.method,
-        status: response.status,
-        statusText: response.statusText,
-      };
+      logOutput.io = response;
       eventEmitter.emit(eventName, logOutput);
       return response;
     },
