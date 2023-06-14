@@ -1,26 +1,22 @@
-import { HttpService } from "@nestjs/axios";
 import { InternalIOHttpMiddleware } from "./internal-io-http.middleware";
 import { AxiosRequestConfig } from "axios";
-import {
-  InjectionToken,
-  OptionalFactoryDependency,
-} from "@nestjs/common/interfaces";
+import { IInternalLogProvider } from "../../interface/internal-log-provider";
 
-export function InternalLogProvider(
-  eventName: string,
-  service: typeof HttpService,
-  T: InjectionToken | OptionalFactoryDependency,
-  config: AxiosRequestConfig
-) {
+export function InternalLogProvider({
+  eventName,
+  httpService,
+  emitter,
+  config,
+}: IInternalLogProvider) {
   return {
-    provide: service,
-    useFactory: (issuer: typeof T) => {
+    provide: httpService,
+    useFactory: (issuer: typeof emitter, http: any) => {
       return InternalIOHttpMiddleware({
         instance: issuer,
         event: eventName,
-        config: config,
+        config: http.createProviderConfig() as AxiosRequestConfig,
       });
     },
-    inject: [T],
+    inject: [emitter, config],
   };
 }
